@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporting Appels – Version Stable Complète</title>
+
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#f4f7ff;margin:0;padding:12px}
+h1{color:#0b57d0;margin:0 0 12px}
+.box{background:#fff;padding:12px;margin-bottom:14px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+button,input,select{padding:6px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{border:1px solid #ddd;padding:6px;vertical-align:top}
+th{background:#eef3ff;position:sticky;top:0}
+.stat{font-weight:bold;color:#0b57d0;font-size:16px}
+.flex{display:flex;gap:12px;flex-wrap:wrap}
+.small{font-size:12px;color:#666}
+.tableWrap{max-height:55vh;overflow:auto}
+a{color:#0b57d0;text-decoration:none}
+</style>
+</head>
+
+<body>
+
+<h1>📊 Reporting Appels – Version Stable</h1>
+
+<!-- IMPORT -->
+<div class="box">
+<b>1) Import fichier (TXT / CSV / TSV)</b><br><br>
+<input type="file" id="fileInput">
+<button onclick="validateImport()">Valider import</button>
+<div class="small" id="importMsg"></div>
+</div>
+
+<!-- STATS -->
+<div class="box">
+<b>Statistiques (jeu filtré)</b><br><br>
+Appels : <span class="stat" id="statCalls">0</span> |
+RDV : <span class="stat" id="statRDV">0</span>
+
+<div class="flex" style="margin-top:10px">
+  <div style="flex:1">
+    <b>Par statut</b>
+    <table><thead><tr><th>Statut</th><th>Appels</th><th>RDV</th></tr></thead>
+    <tbody id="statByStatus"></tbody></table>
+  </div>
+  <div style="flex:1">
+    <b>Par agent</b>
+    <table><thead><tr><th>Agent</th><th>Appels</th><th>RDV</th></tr></thead>
+    <tbody id="statByAgent"></tbody></table>
+  </div>
+</div>
+</div>
+
+<!-- HISTORIQUE -->
+<div class="box">
+<b>2) Historique des fichiers importés</b>
+<table>
+<thead>
+<tr>
+<th>Fichier</th>
+<th>Lignes</th>
+<th>Date import</th>
+<th>Commentaire</th>
+<th>Export</th>
+</tr>
+</thead>
+<tbody id="history"></tbody>
+</table>
+</div>
+
+<!-- FILTRES -->
+<div class="box">
+<b>3) Filtres</b><br><br>
+Agent :
+<select id="fAgent"><option value="">Tous</option></select>
+Statut :
+<select id="fStatus"><option value="">Tous</option></select>
+Date début :
+<input type="date" id="dateFrom">
+Date fin :
+<input type="date" id="dateTo">
+<button onclick="refresh()">Appliquer</button>
+<button onclick="resetFilters()">Tout</button>
+</div>
+
+<!-- TABLE -->
+<div class="box">
+<b>Détails</b>
+<div class="tableWrap">
+<table>
+<thead>
+<tr>
+<th>Date</th><th>Agent</th><th>Statut</th><th>Téléphone</th>
+<th>Nom</th><th>Prénom</th><th>Ville</th>
+<th>Durée</th><th>Recording</th><th>Commentaire</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+<br>
+<button onclick="exportFiltered()">Exporter Excel (jeu filtré)</button>
+</div>
+
+<script>
+let DATA=[], FILES=[], DEDUPE={};
+const RDV_CODES=["SALE","RDV","APPT","OK"];
+
+function detectSep(l){
+ if(l.includes("\t"))return"\t";
+ if(l.includes("|"))return"|";
+ if(l.includes(";"))return";";
+ return ",";
+}
+
+function validateImport(){
+ const f=document.getElementById("fileInput").files[0];
+ if(!f){alert("Choisir fichier");return;}
+ const r=new FileReader();
+ r.onload=()=>{
+  const lines=r.result.split(/\r?\n/).filter(l=>l.trim());
+  const sep=detectSep(lines[0]);
+  const head=lines[0].split(sep).map(h=>h.toLowerCase());
+  let count=0, rows=[];
+  for(let i=1;i<lines.length;i++){
+   const c=lines[i].split(sep);
+   const row={
+    date:c[head.indexOf("call_date")]||"",
+    agent:c[head.indexOf("user")]||"",
+    status:c[head.indexOf("status")]||"",
+    phone:c[head.indexOf("phone_number_dialed")]||"",
+    nom:c[head.indexOf("last_name")]||"",
+    prenom:c[head.indexOf("first_name")]||"",
+    ville:c[head.indexOf("city")]||"",
+    duree:c[head.indexOf("length_in_sec")]||"",
+    rec:c[head.indexOf("recording_location")]||"",
+    com:c[head.indexOf("comments")]||"",
+    src:f.name
+   };
+   const key=row.date+row.phone+row.agent;
+   if(DEDUPE[key])continue;
+   DEDUPE[key]=1;
+   DATA.push(row); rows.push(row); count++;
+  }
+  FILES.push({name:f.name,count,rows,date:new Date().toLocaleString(),note:""});
+  document.getElementById("importMsg").innerText=count+" lignes importées";
+  buildFilters(); renderHistory(); refresh();
+ };
+ r.readAsText(f);
+}
+
+function buildFilters(){
+ let A={},S={};
+ DATA.forEach(r=>{A[r.agent]=1;S[r.status]=1;});
+ fAgent.innerHTML="<option value=''>Tous</option>"+Object.keys(A).map(v=>`<option>${v}</option>`).join("");
+ fStatus.innerHTML="<option value=''>Tous</option>"+Object.keys(S).map(v=>`<option>${v}</option>`).join("");
+}
+
+function refresh(){
+ let a=fAgent.value,s=fStatus.value,df=dateFrom.value,dt=dateTo.value;
+ let calls=0,rdv=0,bs={},ba={},html="";
+ DATA.forEach(r=>{
+  if(a&&r.agent!==a)return;
+  if(s&&r.status!==s)return;
+  if(df&&r.date<df)return;
+  if(dt&&r.date>dt)return;
+  calls++; if(RDV_CODES.includes(r.status))rdv++;
+  bs[r.status]=bs[r.status]||{c:0,r:0}; bs[r.status].c++; if(RDV_CODES.includes(r.status))bs[r.status].r++;
+  ba[r.agent]=ba[r.agent]||{c:0,r:0}; ba[r.agent].c++; if(RDV_CODES.includes(r.status))ba[r.agent].r++;
+  html+=`<tr><td>${r.date}</td><td>${r.agent}</td><td>${r.status}</td><td>${r.phone}</td><td>${r.nom}</td><td>${r.prenom}</td><td>${r.ville}</td><td>${r.duree}</td><td><a href="${r.rec}" target="_blank">écouter</a></td><td>${r.com}</td></tr>`;
+ });
+ statCalls.innerText=calls; statRDV.innerText=rdv;
+ tbody.innerHTML=html||"<tr><td colspan=10>Aucune donnée</td></tr>";
+ statByStatus.innerHTML=Object.keys(bs).map(k=>`<tr><td>${k}</td><td>${bs[k].c}</td><td>${bs[k].r}</td></tr>`).join("");
+ statByAgent.innerHTML=Object.keys(ba).map(k=>`<tr><td>${k}</td><td>${ba[k].c}</td><td>${ba[k].r}</td></tr>`).join("");
+}
+
+function renderHistory(){
+ history.innerHTML=FILES.map((f,i)=>`
+<tr>
+<td>${f.name}</td><td>${f.count}</td><td>${f.date}</td>
+<td><input value="${f.note}" onchange="FILES[${i}].note=this.value"></td>
+<td><button onclick="exportFile(${i})">Excel</button></td>
+</tr>`).join("");
+}
+
+function exportFile(i){
+ const rows=FILES[i].rows;
+ exportCSV(rows,"export_"+FILES[i].name);
+}
+function exportFiltered(){exportCSV(DATA,"reporting_filtre.csv");}
+
+function exportCSV(rows,name){
+ let h=["date","agent","status","phone","nom","prenom","ville","duree","recording","commentaire"];
+ let csv=h.join(";")+"\n";
+ rows.forEach(r=>{
+  csv+=h.map(k=>`"${(r[k]||"").replace(/"/g,'""')}"`).join(";")+"\n";
+ });
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+ a.download=name; a.click();
+}
+
+function resetFilters(){fAgent.value="";fStatus.value="";dateFrom.value="";dateTo.value="";refresh();}
+</script>
+
+</body>
+</html>

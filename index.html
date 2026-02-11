@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM – RDV & Reporting</title>
+
+<style>
+body{font-family:Arial;background:#f4f7ff;margin:0;padding:20px}
+.card{background:#fff;padding:20px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);margin-bottom:20px}
+h1,h2{margin:0 0 12px;color:#0b57d0}
+label{font-size:13px;margin-top:10px;display:block}
+input,select,textarea,button{width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:14px}
+button{background:#0b57d0;color:#fff;font-weight:bold;border:none;cursor:pointer;margin-top:12px}
+button:hover{opacity:.9}
+.logout{background:#ef4444}
+.hidden{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left}
+th{background:#eef3ff}
+.stat{font-size:20px;font-weight:bold;color:#0b57d0}
+.neon{
+  margin:10px 0 20px;
+  padding:16px;
+  text-align:center;
+  border-radius:16px;
+  border:2px solid #00cfff;
+  color:#00cfff;
+  font-size:18px;
+  font-weight:bold;
+  box-shadow:0 0 18px #00cfff,inset 0 0 18px #00cfff;
+}
+.neon a{color:#00cfff;text-decoration:none}
+.small{font-size:12px;color:#666}
+.actionBtn{padding:6px 10px;font-size:12px}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginCard" class="card">
+<h1>Connexion</h1>
+
+<label>Rôle</label>
+<select id="role">
+<option>TA1</option><option>TA2</option><option>TA3</option>
+<option>TA4</option><option>TA5</option>
+<option>Client</option>
+<option value="CUSTOM">Nom libre</option>
+<option>Admin</option>
+</select>
+
+<div id="customRoleBox" class="hidden">
+<label>Nom du rôle</label>
+<input id="customRole">
+</div>
+
+<label>Nom</label>
+<input id="username">
+
+<div id="adminBox" class="hidden">
+<label>Mot de passe Admin</label>
+<input id="adminPass" type="password">
+</div>
+
+<button onclick="login()">Se connecter</button>
+<div id="msg" style="color:red"></div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+<div class="card">
+<div class="grid">
+<div>Connecté : <b id="uName"></b> (<span id="uRole"></span>)</div>
+<button class="logout" onclick="logout()">Déconnexion</button>
+</div>
+
+<div class="neon">
+<a href="reporting.html"> OUVRIR REPORTING COMPLET</a>
+</div>
+</div>
+
+<!-- AJOUT -->
+<div class="card">
+<h2>Ajouter prospect / RDV</h2>
+
+<div class="grid">
+<input id="nom" placeholder="Nom">
+<input id="prenom" placeholder="Prénom">
+<input id="tel" placeholder="Téléphone">
+<input id="mobile" placeholder="Mobile">
+<input id="code" placeholder="Code donné">
+<input id="date" type="datetime-local">
+<select id="statut">
+<option value="RDV">RDV</option>
+<option value="A_RAPPELER">À rappeler</option>
+<option value="STOP">À ne plus appeler</option>
+</select>
+</div>
+
+<textarea id="comment" placeholder="Commentaire"></textarea>
+<button onclick="add()">Ajouter</button>
+</div>
+
+<!-- STATS -->
+<div class="card">
+<h2>Tableau récapitulatif reporting</h2>
+<div class="grid">
+<div>Total RDV<br><span class="stat" id="sTotal">0</span></div>
+<div>Par jour<br><div id="sDay" class="small"></div></div>
+<div>Par agent<br><div id="sUser" class="small"></div></div>
+</div>
+<button onclick="exportCSV()">Exporter Excel</button>
+</div>
+
+<!-- TABLE -->
+<div class="card">
+<h2>Liste prospects</h2>
+
+<select id="filter" onchange="render()">
+<option value="">Tous</option>
+<option value="RDV">RDV</option>
+<option value="A_RAPPELER">À rappeler</option>
+<option value="STOP">À ne plus appeler</option>
+</select>
+
+<table>
+<thead>
+<tr>
+<th>Nom</th><th>Prénom</th><th>Tél</th><th>Date</th>
+<th>Statut</th><th>Agent</th><th>Dernière modif</th><th>Actions</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+const ADMIN_PASS="admin2026";
+let USER={},DATA=[],EDIT=null;
+
+/* ROLE */
+role.onchange=()=>{
+ adminBox.classList.toggle("hidden",role.value!=="Admin");
+ customRoleBox.classList.toggle("hidden",role.value!=="CUSTOM");
+};
+
+/* LOGIN */
+function login(){
+ if(!username.value) return msg.textContent="Nom requis";
+ if(role.value==="Admin" && adminPass.value!==ADMIN_PASS)
+   return msg.textContent="Mot de passe incorrect";
+
+ USER={
+  name:username.value,
+  role: role.value==="CUSTOM" ? customRole.value : role.value
+ };
+
+ loginCard.classList.add("hidden");
+ app.classList.remove("hidden");
+ uName.textContent=USER.name;
+ uRole.textContent=USER.role;
+}
+
+/* LOGOUT */
+function logout(){location.reload();}
+
+/* ADD / EDIT */
+function add(){
+ const obj={
+  nom:nom.value,prenom:prenom.value,tel:tel.value,
+  mobile:mobile.value,code:code.value,date:date.value,
+  statut:statut.value,comment:comment.value,
+  user:USER.name,lastEdit:USER.name
+ };
+ if(EDIT!==null){
+  DATA[EDIT]=obj;
+  EDIT=null;
+ }else DATA.push(obj);
+
+ clearForm();
+ render();
+}
+
+/* CLEAR */
+function clearForm(){
+ nom.value=prenom.value=tel.value=mobile.value=code.value=date.value=comment.value="";
+ statut.value="RDV";
+}
+
+/* RENDER */
+function render(){
+ const f=filter.value;
+ let html="",day={},user={},total=0;
+ DATA.forEach((r,i)=>{
+  if(f && r.statut!==f) return;
+  if(r.statut==="RDV"){
+   total++;
+   const d=r.date?.slice(0,10);
+   day[d]=(day[d]||0)+1;
+   user[r.user]=(user[r.user]||0)+1;
+  }
+  html+=`<tr>
+<td>${r.nom}</td><td>${r.prenom}</td><td>${r.tel}</td>
+<td>${r.date||""}</td><td>${r.statut}</td>
+<td>${r.user}</td><td>${r.lastEdit}</td>
+<td>
+<button class="actionBtn" onclick="edit(${i})"></button>
+${USER.role==="Admin"?`<button class="actionBtn" onclick="del(${i})"></button>`:""}
+</td>
+</tr>`;
+ });
+ tbody.innerHTML=html||"<tr><td colspan=8>Aucune donnée</td></tr>";
+ sTotal.textContent=total;
+ sDay.innerHTML=Object.entries(day).map(e=>`${e[0]} : ${e[1]}`).join("<br>");
+ sUser.innerHTML=Object.entries(user).map(e=>`${e[0]} : ${e[1]}`).join("<br>");
+}
+
+/* EDIT */
+function edit(i){
+ const r=DATA[i];
+ nom.value=r.nom;prenom.value=r.prenom;tel.value=r.tel;
+ mobile.value=r.mobile;code.value=r.code;date.value=r.date;
+ statut.value=r.statut;comment.value=r.comment;
+ r.lastEdit=USER.name;
+ EDIT=i;
+}
+
+/* DELETE */
+function del(i){
+ if(USER.role!=="Admin") return;
+ DATA.splice(i,1);
+ render();
+}
+
+/* EXPORT */
+function exportCSV(){
+ let csv="nom;prenom;tel;mobile;code;date;statut;agent;commentaire\n";
+ DATA.forEach(r=>{
+  csv+=`${r.nom};${r.prenom};${r.tel};${r.mobile};${r.code};${r.date};${r.statut};${r.user};${r.comment}\n`;
+ });
+ const b=new Blob([csv]);
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(b);
+ a.download="crm_rdv.csv";
+ a.click();
+}
+</script>
+
+</body>
+</html>
