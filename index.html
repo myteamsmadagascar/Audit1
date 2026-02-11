@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CRM – RDV & Reporting</title>
+<title>CRM â€“ RDV & Reporting</title>
 
 <style>
 body{font-family:Arial;background:#f4f7ff;margin:0;padding:20px}
@@ -43,7 +43,7 @@ th{background:#eef3ff}
 <div id="loginCard" class="card">
 <h1>Connexion</h1>
 
-<label>Rôle</label>
+<label>RÃ´le</label>
 <select id="role">
 <option>TA1</option><option>TA2</option><option>TA3</option>
 <option>TA4</option><option>TA5</option>
@@ -53,7 +53,7 @@ th{background:#eef3ff}
 </select>
 
 <div id="customRoleBox" class="hidden">
-<label>Nom du rôle</label>
+<label>Nom du rÃ´le</label>
 <input id="customRole">
 </div>
 
@@ -74,8 +74,8 @@ th{background:#eef3ff}
 
 <div class="card">
 <div class="grid">
-<div>Connecté : <b id="uName"></b> (<span id="uRole"></span>)</div>
-<button class="logout" onclick="logout()">Déconnexion</button>
+<div>ConnectÃ© : <b id="uName"></b> (<span id="uRole"></span>)</div>
+<button class="logout" onclick="logout()">DÃ©connexion</button>
 </div>
 
 <div class="neon">
@@ -89,15 +89,15 @@ th{background:#eef3ff}
 
 <div class="grid">
 <input id="nom" placeholder="Nom">
-<input id="prenom" placeholder="Prénom">
-<input id="tel" placeholder="Téléphone">
+<input id="prenom" placeholder="PrÃ©nom">
+<input id="tel" placeholder="TÃ©lÃ©phone">
 <input id="mobile" placeholder="Mobile">
-<input id="code" placeholder="Code donné">
+<input id="code" placeholder="Code donnÃ©">
 <input id="date" type="datetime-local">
 <select id="statut">
 <option value="RDV">RDV</option>
-<option value="A_RAPPELER">À rappeler</option>
-<option value="STOP">À ne plus appeler</option>
+<option value="A_RAPPELER">Ã€ rappeler</option>
+<option value="STOP">Ã€ ne plus appeler</option>
 </select>
 </div>
 
@@ -107,7 +107,7 @@ th{background:#eef3ff}
 
 <!-- STATS -->
 <div class="card">
-<h2>Tableau récapitulatif reporting</h2>
+<h2>Tableau rÃ©capitulatif reporting</h2>
 <div class="grid">
 <div>Total RDV<br><span class="stat" id="sTotal">0</span></div>
 <div>Par jour<br><div id="sDay" class="small"></div></div>
@@ -123,15 +123,15 @@ th{background:#eef3ff}
 <select id="filter" onchange="render()">
 <option value="">Tous</option>
 <option value="RDV">RDV</option>
-<option value="A_RAPPELER">À rappeler</option>
-<option value="STOP">À ne plus appeler</option>
+<option value="A_RAPPELER">Ã€ rappeler</option>
+<option value="STOP">Ã€ ne plus appeler</option>
 </select>
 
 <table>
 <thead>
 <tr>
-<th>Nom</th><th>Prénom</th><th>Tél</th><th>Date</th>
-<th>Statut</th><th>Agent</th><th>Dernière modif</th><th>Actions</th>
+<th>Nom</th><th>PrÃ©nom</th><th>TÃ©l</th><th>Date</th>
+<th>Statut</th><th>Agent</th><th>DerniÃ¨re modif</th><th>Actions</th>
 </tr>
 </thead>
 <tbody id="tbody"></tbody>
@@ -215,7 +215,7 @@ ${USER.role==="Admin"?`<button class="actionBtn" onclick="del(${i})"></button>`
 </td>
 </tr>`;
  });
- tbody.innerHTML=html||"<tr><td colspan=8>Aucune donnée</td></tr>";
+ tbody.innerHTML=html||"<tr><td colspan=8>Aucune donnÃ©e</td></tr>";
  sTotal.textContent=total;
  sDay.innerHTML=Object.entries(day).map(e=>`${e[0]} : ${e[1]}`).join("<br>");
  sUser.innerHTML=Object.entries(user).map(e=>`${e[0]} : ${e[1]}`).join("<br>");
@@ -253,4 +253,5 @@ function exportCSV(){
 </script>
 
 </body>
+
 </html>
